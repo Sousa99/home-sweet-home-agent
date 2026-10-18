@@ -11,8 +11,22 @@ services:
       FLIGHTS_MCP_URL: ${FLIGHTS_MCP_URL:-http://host.docker.internal:3201/mcp}
       TASKS_MCP_URL: ${TASKS_MCP_URL:-http://host.docker.internal:3202/mcp}
       WEATHER_MCP_URL: ${WEATHER_MCP_URL:-http://host.docker.internal:3203/mcp}
-      LLM_PROVIDER: ${LLM_PROVIDER}
-      LLM_MODEL: ${LLM_MODEL}
+      MCP_TIMEOUT_MS: ${MCP_TIMEOUT_MS:-10000}
+      LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-30000}
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai-compatible}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://opencode.ai/zen/go/v1}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-v4.1-flash}
       LLM_API_KEY: ${LLM_API_KEY}
+      AGENT_AUTH_TOKENS: ${AGENT_AUTH_TOKENS:-{}}
+      AGENT_TOKENS_FILE: ${AGENT_TOKENS_FILE:-}
+      CONFIRMATION_TTL_MS: ${CONFIRMATION_TTL_MS:-120000}
+      AGENT_MAX_TOOL_ITERATIONS: ${AGENT_MAX_TOOL_ITERATIONS:-4}
+      AGENT_MAX_TOOL_RESULT_CHARS: ${AGENT_MAX_TOOL_RESULT_CHARS:-8000}
+      AGENT_UNKNOWN_TOOL_POLICY: ${AGENT_UNKNOWN_TOOL_POLICY:-destructive}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_REDACT: ${LOG_REDACT:-true}
     ports:
       - '${AGENT_PORT:-3400}:3400'
+    # If you use AGENT_TOKENS_FILE, mount the token file into the container:
+    # volumes:
+    #   - ./secrets:/app/secrets:ro
