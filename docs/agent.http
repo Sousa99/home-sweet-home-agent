@@ -1,0 +1,65 @@
+### Home Sweet Home agent — REST client requests
+###
+### Generate a token first:
+###   pnpm token:generate -- --caller-id you --permissions read,write,destructive
+### Then set the variables below.
+
+@host = http://127.0.0.1:3400
+@token = paste-your-bearer-token-here
+
+### Health: overall status, per-module status, LLM readiness
+GET {{host}}/health
+Authorization: Bearer {{token}}
+
+### Ask a question (grounded in module data)
+POST {{host}}/conversation
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "message": "When is the next bus at my stop?"
+}
+
+### Ask a follow-up in the same conversation
+POST {{host}}/conversation
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "message": "What about the weather?",
+  "conversationId": "paste-conversation-id-here"
+}
+
+### Approve a pending destructive action
+POST {{host}}/confirm
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "conversationId": "paste-conversation-id-here",
+  "confirmationToken": "paste-confirmation-token-here",
+  "decision": "approve"
+}
+
+### Reject a pending destructive action
+POST {{host}}/confirm
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "conversationId": "paste-conversation-id-here",
+  "confirmationToken": "paste-confirmation-token-here",
+  "decision": "reject"
+}
+
+### Accept a notification event (contract only; not scheduled)
+POST {{host}}/notifications
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "type": "bus.departure",
+  "severity": "info",
+  "payload": { "stopId": "123", "line": "758", "minutes": 3 },
+  "target": "home-assistant"
+}

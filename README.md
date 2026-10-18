@@ -49,24 +49,28 @@ than independently connecting to every module.
 
 ## Quick start
 
-The implementation is being built incrementally. Copy the environment template before starting:
-
 ```bash
 cp .env.example .env
 pnpm install
-pnpm test
-pnpm dev
+
+# Generate a token into a readable, git-ignored file (secrets/tokens.json)
+pnpm token:generate -- --caller-id you --permissions read,write,destructive --out secrets/tokens.json
+
+pnpm test        # unit, contract, and integration tests (no credentials needed)
+pnpm dev         # start the agent on http://127.0.0.1:3400
+pnpm chat -- --token "<the token>"          # interactive local chat
+pnpm chat -- --token "<the token>" --once "When is the next bus at my stop?"
 ```
 
-The initial service contract is expected to provide a private HTTP interface for conversation,
-confirmation, health, and notification requests. MCP server URLs and LLM credentials are configured
-through environment variables, never committed to the repository. The initial Compose file assumes
-the dashboard exposes MCP ports on the host; a shared private network or authenticated internal
-endpoint can replace that arrangement when deployment is finalized.
+The agent exposes a private HTTP interface for conversation, confirmation, health, and notification
+requests. MCP server URLs and LLM credentials are configured through environment variables, never
+committed. See `docs/http-contract.md` for the full contract and `docs/agent.http` for runnable
+requests.
 
 ## Intended capabilities
 
 - Query weather, bus departures, flights, and active tasks
+- Show which module tools were used for each request (a response `trace` plus `info`-level logs)
 - Create and update tasks through explicit user requests
 - Require confirmation for deletion, completion, and other destructive actions
 - Maintain separate sessions and permissions per household user
@@ -105,6 +109,8 @@ integration smoke test against representative module MCP servers before deployme
 
 ## Project status
 
-This repository is the initial boundary and service scaffold. MCP session management, provider
-adapters, Home Assistant integration, and optional text transports should be added as independently
-testable features.
+The agent core is implemented: bearer-token authorization, one managed MCP session per module with
+namespaced tool discovery, a provider-agnostic OpenAI-compatible LLM loop, read/write/destructive
+tool policy with single-use confirmations, redacted logging, a health endpoint, a token generator,
+a local chat CLI, and a deterministic fake-based test suite. Home Assistant as a fifth MCP source
+and the Home Assistant conversation adapter are later features.
