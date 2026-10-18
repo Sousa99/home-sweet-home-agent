@@ -1,0 +1,25 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "bus-catcher": {
+      "type": "remote",
+      "url": "http://localhost:3200/mcp",
+      "enabled": true
+    },
+    "fly-over-tracker": {
+      "type": "remote",
+      "url": "http://localhost:3201/mcp",
+      "enabled": true
+    },
+    "procrastinator-tracker": {
+      "type": "remote",
+      "url": "http://localhost:3202/mcp",
+      "enabled": true
+    },
+    "weather-psychic": {
+      "type": "remote",
+      "url": "http://localhost:3203/mcp",
+      "enabled": true
+    }
+  }
+}
