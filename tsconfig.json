@@ -9,5 +9,6 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["src", "tests"]
+  "include": ["src", "tests", "scripts", "vitest.config.ts", "eslint.config.js"],
+  "exclude": ["dist"]
 }
