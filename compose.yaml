@@ -1,0 +1,18 @@
+name: home-sweet-home-agent
+
+services:
+  agent:
+    build: .
+    restart: unless-stopped
+    environment:
+      AGENT_HOST: ${AGENT_HOST:-0.0.0.0}
+      AGENT_PORT: ${AGENT_PORT:-3400}
+      BUS_MCP_URL: ${BUS_MCP_URL:-http://host.docker.internal:3200/mcp}
+      FLIGHTS_MCP_URL: ${FLIGHTS_MCP_URL:-http://host.docker.internal:3201/mcp}
+      TASKS_MCP_URL: ${TASKS_MCP_URL:-http://host.docker.internal:3202/mcp}
+      WEATHER_MCP_URL: ${WEATHER_MCP_URL:-http://host.docker.internal:3203/mcp}
+      LLM_PROVIDER: ${LLM_PROVIDER}
+      LLM_MODEL: ${LLM_MODEL}
+      LLM_API_KEY: ${LLM_API_KEY}
+    ports:
+      - '${AGENT_PORT:-3400}:3400'
