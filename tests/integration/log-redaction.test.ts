@@ -44,4 +44,45 @@ describe('log redaction (integration)', () => {
     expect(output).not.toContain(harness.token.token)
     expect(output.length).toBeGreaterThan(0)
   })
+
+  it('redacts the Home Assistant token and control arguments from logs', async () => {
+    const { logger, lines } = capturingLogger()
+    const harness = buildHarness({
+      logger,
+      provider: new FakeLLMProvider([
+        toolCallTurn([
+          { name: 'home_assistant__intent__HassTurnOn', args: { name: 'SECRET-GARAGE' } },
+        ]),
+      ]),
+      registerTools: (registry) =>
+        registry.registerSource(
+          'home_assistant',
+          [
+            {
+              name: 'intent__HassTurnOn',
+              inputSchema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+                required: ['name'],
+              },
+            },
+          ],
+          () => 'destructive',
+        ),
+    })
+
+    await postJson(harness.app, '/conversation', { message: 'open SECRET-GARAGE' }, harness.auth)
+
+    const output = lines.join('\n')
+    expect(output).toContain('home_assistant__intent__HassTurnOn')
+    expect(output).toContain('confirmation_required')
+    expect(output).not.toContain('SECRET-GARAGE')
+
+    logger.info('ha.source', {
+      sourceId: 'home_assistant',
+      authorization: 'Bearer ha-secret-token',
+    })
+    expect(lines.join('\n')).not.toContain('ha-secret-token')
+    expect(lines.join('\n')).toContain('[redacted]')
+  })
 })

@@ -11,6 +11,8 @@ services:
       FLIGHTS_MCP_URL: ${FLIGHTS_MCP_URL:-http://host.docker.internal:3201/mcp}
       TASKS_MCP_URL: ${TASKS_MCP_URL:-http://host.docker.internal:3202/mcp}
       WEATHER_MCP_URL: ${WEATHER_MCP_URL:-http://host.docker.internal:3203/mcp}
+      HOME_ASSISTANT_MCP_URL: ${HOME_ASSISTANT_MCP_URL:-http://host.docker.internal:8123/api/mcp}
+      HOME_ASSISTANT_MCP_TOKEN: ${HOME_ASSISTANT_MCP_TOKEN:-}
       MCP_TIMEOUT_MS: ${MCP_TIMEOUT_MS:-10000}
       LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-30000}
       LLM_PROVIDER: ${LLM_PROVIDER:-openai-compatible}

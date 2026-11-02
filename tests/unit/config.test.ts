@@ -29,6 +29,7 @@ describe('loadConfig', () => {
       'flights',
       'tasks',
       'weather',
+      'home_assistant',
     ])
     expect(config.llm.baseUrl).toBe('https://opencode.ai/inference/go/openai/v1')
     expect(config.llm.model).toBe('deepseek-v4.1-flash')
@@ -94,5 +95,37 @@ describe('loadConfig', () => {
 
   it('rejects an invalid MCP URL', () => {
     expect(() => loadConfig({ BUS_MCP_URL: 'not a url' })).toThrow(/valid URL/)
+  })
+
+  it('includes the Home Assistant MCP source with the documented default URL', () => {
+    const source = loadConfig({}).mcpSources.find((s) => s.sourceId === 'home_assistant')
+    expect(source?.url).toBe('http://localhost:8123/api/mcp')
+    expect(source?.headers).toBeUndefined()
+  })
+
+  it('wires HOME_ASSISTANT_MCP_TOKEN into an Authorization header', () => {
+    const source = loadConfig({ HOME_ASSISTANT_MCP_TOKEN: 'secret-token' }).mcpSources.find(
+      (s) => s.sourceId === 'home_assistant',
+    )
+    expect(source?.headers).toEqual({ Authorization: 'Bearer secret-token' })
+  })
+
+  it('honors a custom HOME_ASSISTANT_MCP_URL', () => {
+    const source = loadConfig({
+      HOME_ASSISTANT_MCP_URL: 'http://ha.local:8123/api/mcp',
+    }).mcpSources.find((s) => s.sourceId === 'home_assistant')
+    expect(source?.url).toBe('http://ha.local:8123/api/mcp')
+  })
+
+  it('rejects an invalid Home Assistant MCP URL', () => {
+    expect(() => loadConfig({ HOME_ASSISTANT_MCP_URL: 'not a url' })).toThrow(/valid URL/)
+  })
+
+  it('exposes the Home Assistant token only inside the source Authorization header', () => {
+    const config = loadConfig({ HOME_ASSISTANT_MCP_TOKEN: 'secret-token' })
+    const serialized = JSON.stringify(config)
+    expect(serialized).toContain('Bearer secret-token')
+    expect(serialized.match(/secret-token/g)?.length).toBe(1)
+    expect(config).not.toHaveProperty('homeAssistantToken')
   })
 })

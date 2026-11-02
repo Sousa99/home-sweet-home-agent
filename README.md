@@ -40,7 +40,7 @@ Optional text ───┼── Agent API ── Conversation/LLM ── MCP cl
                  │                                      │
                  └── Notifications ◄────────────────────┘
                                                         │
-                         bus · flights · tasks · weather MCP servers
+                         bus · flights · tasks · weather · Home Assistant MCP servers
 ```
 
 The agent is the recommended single MCP client for production. Module MCP endpoints should remain
@@ -70,6 +70,8 @@ requests.
 ## Intended capabilities
 
 - Query weather, bus departures, flights, and active tasks
+- Read and control Home Assistant devices through Home Assistant's built-in MCP Server, with
+  confirmation required for consequential actions
 - Show which module tools were used for each request (a response `trace` plus `info`-level logs)
 - Create and update tasks through explicit user requests
 - Require confirmation for deletion, completion, and other destructive actions
@@ -94,6 +96,12 @@ tests/             # unit, contract, and integration tests
 The gateway must not log message contents, model prompts, tool arguments, tokens, or household
 locations by default. Sensitive audit fields require explicit redaction policy and configuration.
 
+Home Assistant is the fifth MCP source. Set `HOME_ASSISTANT_MCP_URL` to the official home-server
+endpoint (`https://home-assistant.<tailnet>.ts.net/api/mcp`, reachable over Tailscale) or to
+`http://localhost:8123/api/mcp` for a local instance, and provide a long-lived access token in
+`HOME_ASSISTANT_MCP_TOKEN`. The same `HOME_ASSISTANT_MCP_URL`/`HOME_ASSISTANT_TOKEN` values drive the
+OpenCode MCP entry.
+
 ## Related repositories
 
 | Repository | Purpose |
@@ -112,5 +120,6 @@ integration smoke test against representative module MCP servers before deployme
 The agent core is implemented: bearer-token authorization, one managed MCP session per module with
 namespaced tool discovery, a provider-agnostic OpenAI-compatible LLM loop, read/write/destructive
 tool policy with single-use confirmations, redacted logging, a health endpoint, a token generator,
-a local chat CLI, and a deterministic fake-based test suite. Home Assistant as a fifth MCP source
-and the Home Assistant conversation adapter are later features.
+a local chat CLI, and a deterministic fake-based test suite. Home Assistant is integrated as a fifth
+MCP source (its built-in MCP Server) with confirmation-gated control. The Home Assistant conversation
+adapter is a later feature.

@@ -9,6 +9,7 @@ import type { ToolPolicy } from './policy.js'
 export interface McpSourceConfig {
   sourceId: string
   url: string
+  headers?: Record<string, string>
 }
 
 export interface AgentConfig {
@@ -42,6 +43,8 @@ const envSchema = z.object({
   FLIGHTS_MCP_URL: z.string().min(1).default('http://localhost:3201/mcp'),
   TASKS_MCP_URL: z.string().min(1).default('http://localhost:3202/mcp'),
   WEATHER_MCP_URL: z.string().min(1).default('http://localhost:3203/mcp'),
+  HOME_ASSISTANT_MCP_URL: z.string().min(1).default('http://localhost:8123/api/mcp'),
+  HOME_ASSISTANT_MCP_TOKEN: z.string().default(''),
   MCP_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
   LLM_PROVIDER: z.enum(['openai-compatible']).default('openai-compatible'),
   LLM_BASE_URL: z.string().min(1).default('https://opencode.ai/inference/go/openai/v1'),
@@ -128,6 +131,13 @@ export function loadConfig(env: EnvInput = process.env as EnvInput): AgentConfig
     { sourceId: 'flights', url: validateUrl(e.FLIGHTS_MCP_URL, 'FLIGHTS_MCP_URL') },
     { sourceId: 'tasks', url: validateUrl(e.TASKS_MCP_URL, 'TASKS_MCP_URL') },
     { sourceId: 'weather', url: validateUrl(e.WEATHER_MCP_URL, 'WEATHER_MCP_URL') },
+    {
+      sourceId: 'home_assistant',
+      url: validateUrl(e.HOME_ASSISTANT_MCP_URL, 'HOME_ASSISTANT_MCP_URL'),
+      ...(e.HOME_ASSISTANT_MCP_TOKEN
+        ? { headers: { Authorization: `Bearer ${e.HOME_ASSISTANT_MCP_TOKEN}` } }
+        : {}),
+    },
   ]
 
   const fileTokens = e.AGENT_TOKENS_FILE ? readTokenFile(e.AGENT_TOKENS_FILE) : {}
