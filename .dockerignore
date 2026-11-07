@@ -1,11 +1,14 @@
 node_modules
 dist
 .git
+.github
 .gitignore
 *.log
 .env*
+secrets
 coverage
 specs
 .specify
 .opencode
+docs
 tests
