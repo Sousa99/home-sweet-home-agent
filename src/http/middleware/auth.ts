@@ -4,8 +4,23 @@ import { findTokenEntry, parseBearer } from '../../auth/tokens.js'
 import type { AppEnv } from '../context.js'
 import { AgentError } from '../errors.js'
 
-export function createAuthMiddleware(tokens: TokenMap): MiddlewareHandler<AppEnv> {
+export interface AuthMiddlewareOptions {
+  /** Exact request paths that bypass bearer authentication (for example, probes). */
+  publicPaths?: string[]
+}
+
+export function createAuthMiddleware(
+  tokens: TokenMap,
+  options: AuthMiddlewareOptions = {},
+): MiddlewareHandler<AppEnv> {
+  const publicPaths = new Set(options.publicPaths ?? [])
+
   return async (c, next) => {
+    if (publicPaths.has(c.req.path)) {
+      await next()
+      return
+    }
+
     const token = parseBearer(c.req.header('authorization'))
     if (!token) {
       throw new AgentError('unauthorized')

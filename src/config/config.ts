@@ -37,6 +37,7 @@ const tokenEntrySchema = z.object({
 const tokenMapSchema = z.record(z.string(), tokenEntrySchema)
 
 const envSchema = z.object({
+  NODE_ENV: z.string().optional(),
   AGENT_HOST: z.string().min(1).default('127.0.0.1'),
   AGENT_PORT: z.coerce.number().int().positive().default(3400),
   BUS_MCP_URL: z.string().min(1).default('http://localhost:3200/mcp'),
@@ -142,13 +143,20 @@ export function loadConfig(env: EnvInput = process.env as EnvInput): AgentConfig
 
   const fileTokens = e.AGENT_TOKENS_FILE ? readTokenFile(e.AGENT_TOKENS_FILE) : {}
   const inlineTokens = parseTokenMap(e.AGENT_AUTH_TOKENS)
+  const authTokens = mergeTokenMaps(fileTokens, inlineTokens)
+
+  if (e.NODE_ENV === 'production' && Object.keys(authTokens).length === 0) {
+    throw new Error(
+      'AGENT_AUTH_TOKENS or AGENT_TOKENS_FILE must configure at least one caller in production',
+    )
+  }
 
   return {
     host: e.AGENT_HOST,
     port: e.AGENT_PORT,
     mcpTimeoutMs: e.MCP_TIMEOUT_MS,
     mcpSources,
-    authTokens: mergeTokenMaps(fileTokens, inlineTokens),
+    authTokens,
     confirmationTtlMs: e.CONFIRMATION_TTL_MS,
     maxToolIterations: e.AGENT_MAX_TOOL_ITERATIONS,
     maxToolResultChars: e.AGENT_MAX_TOOL_RESULT_CHARS,

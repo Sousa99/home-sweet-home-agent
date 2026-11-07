@@ -16,6 +16,7 @@ import { confirmRoutes } from './routes/confirm.js'
 import { conversationRoutes } from './routes/conversation.js'
 import { healthRoutes } from './routes/health.js'
 import { notificationRoutes } from './routes/notifications.js'
+import { probeRoutes } from './routes/probes.js'
 
 export interface AppDeps {
   config: AgentConfig
@@ -28,6 +29,7 @@ export interface AppDeps {
   logger: Logger
   now?: () => number
   generateId?: () => string
+  isDraining?: () => boolean
 }
 
 export function createApp(deps: AppDeps): Hono<AppEnv> {
@@ -42,11 +44,16 @@ export function createApp(deps: AppDeps): Hono<AppEnv> {
     logger: deps.logger,
     now: deps.now ?? (() => Date.now()),
     generateId: deps.generateId ?? (() => randomUUID()),
+    isDraining: deps.isDraining ?? (() => false),
   }
 
   const app = new Hono<AppEnv>()
 
-  app.use('*', createAuthMiddleware(deps.config.authTokens))
+  app.use(
+    '*',
+    createAuthMiddleware(deps.config.authTokens, { publicPaths: ['/healthz', '/readyz'] }),
+  )
+  app.route('/', probeRoutes(routeDeps))
   app.route('/conversation', conversationRoutes(routeDeps))
   app.route('/confirm', confirmRoutes(routeDeps))
   app.route('/notifications', notificationRoutes(routeDeps))

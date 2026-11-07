@@ -128,4 +128,24 @@ describe('loadConfig', () => {
     expect(serialized.match(/secret-token/g)?.length).toBe(1)
     expect(config).not.toHaveProperty('homeAssistantToken')
   })
+
+  it('fails fast in production when no auth tokens are configured', () => {
+    expect(() => loadConfig({ NODE_ENV: 'production' })).toThrow(/AGENT_AUTH_TOKENS/)
+  })
+
+  it('starts in development without auth tokens', () => {
+    expect(() => loadConfig({ NODE_ENV: 'development' })).not.toThrow()
+  })
+
+  it('starts in production when at least one auth token is configured', () => {
+    const { tokenHash, entry } = generateTokenEntry({
+      callerId: 'robot',
+      permissions: ['read'],
+    })
+    const config = loadConfig({
+      NODE_ENV: 'production',
+      AGENT_AUTH_TOKENS: JSON.stringify({ [tokenHash]: entry }),
+    })
+    expect(config.authTokens[tokenHash]).toEqual(entry)
+  })
 })

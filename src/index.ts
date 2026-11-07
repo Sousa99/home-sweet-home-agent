@@ -48,6 +48,8 @@ async function main(): Promise<void> {
   const confirmations = new ConfirmationStore({ ttlMs: config.confirmationTtlMs })
   const notifications = new NotificationRecorder()
 
+  let draining = false
+
   const app = createApp({
     config,
     provider,
@@ -57,20 +59,28 @@ async function main(): Promise<void> {
     sources,
     notifications,
     logger,
+    isDraining: () => draining,
   })
 
   const server = serve({ fetch: app.fetch, hostname: config.host, port: config.port }, (info) => {
     logger.info('agent.listening', { host: config.host, port: info.port })
   })
 
-  const shutdown = (): void => {
-    logger.info('agent.stopping', {})
-    server.close()
+  const shutdown = (signal: string): void => {
+    if (draining) return
+    draining = true
+    logger.info('agent.stopping', { signal })
+
+    const httpServer = server as { closeAllConnections?: () => void }
+    const forceClose = setTimeout(() => httpServer.closeAllConnections?.(), 5000)
+    forceClose.unref()
+    server.close(() => clearTimeout(forceClose))
+
     void sources.closeAll().finally(() => process.exit(0))
   }
 
-  process.on('SIGINT', shutdown)
-  process.on('SIGTERM', shutdown)
+  process.on('SIGINT', () => shutdown('SIGINT'))
+  process.on('SIGTERM', () => shutdown('SIGTERM'))
 }
 
 main().catch((error: unknown) => {

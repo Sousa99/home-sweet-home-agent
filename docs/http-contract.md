@@ -1,8 +1,9 @@
 # Agent HTTP contract
 
 Base URL: `http://127.0.0.1:3400` by default (`AGENT_HOST` / `AGENT_PORT`). All requests and
-responses are JSON. Every endpoint requires `Authorization: Bearer <token>`, where the token is a
-random secret whose sha-256 hash appears in `AGENT_AUTH_TOKENS`.
+responses are JSON. Every endpoint except the `/healthz` and `/readyz` probes requires
+`Authorization: Bearer <token>`, where the token is a random secret whose sha-256 hash appears in
+`AGENT_AUTH_TOKENS`.
 
 Generate a token and a readable token file:
 
@@ -33,6 +34,34 @@ map as a single-line JSON object in `AGENT_AUTH_TOKENS`; inline entries merge ov
 | `mcp_unavailable` | 502 | Target module unavailable. |
 | `timeout` | 504 | A bounded operation exceeded its configured timeout. |
 | `internal_error` | 500 | Unexpected failure. |
+
+## Probes (unauthenticated)
+
+`GET /healthz` is the liveness probe. It returns `200` whenever the process is alive and performs no
+network I/O:
+
+```json
+{ "status": "ok", "service": "home-sweet-home-agent", "version": "0.1.0" }
+```
+
+`GET /readyz` is the readiness probe. It returns `200` when the provider is ready and the instance is
+not draining, and `503` otherwise. It never calls the LLM or any MCP source and exposes no secrets or
+URLs:
+
+```json
+{
+  "status": "ok",
+  "service": "home-sweet-home-agent",
+  "llm": { "ready": true, "provider": "openai-compatible", "model": "deepseek-v4.1-flash" },
+  "mcp": {
+    "bus": { "status": "ready", "tools": 10 },
+    "tasks": { "status": "unavailable", "tools": 0 }
+  }
+}
+```
+
+`status` is `ok` (200), `not_ready` (503, provider not ready), or `draining` (503, shutdown in
+progress). MCP source outages do not fail readiness; degraded operation is supported.
 
 ## POST /conversation
 

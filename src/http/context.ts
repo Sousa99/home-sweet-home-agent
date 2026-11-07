@@ -21,4 +21,5 @@ export interface RouteDeps {
   logger: Logger
   now: () => number
   generateId: () => string
+  isDraining: () => boolean
 }

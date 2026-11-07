@@ -22,6 +22,7 @@ export interface HarnessOptions {
   logger?: Logger
   now?: () => number
   generateId?: () => string
+  isDraining?: () => boolean
   permissions?: Permission[]
 }
 
@@ -77,6 +78,7 @@ export function buildHarness(options: HarnessOptions): Harness {
     logger,
     now: options.now,
     generateId: options.generateId,
+    isDraining: options.isDraining,
   })
 
   return {
