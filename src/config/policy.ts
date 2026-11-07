@@ -36,6 +36,39 @@ const TOOL_POLICY: Record<string, ToolPolicy> = {
 
 export const KNOWN_TOOL_POLICIES: Readonly<Record<string, ToolPolicy>> = TOOL_POLICY
 
+export const HOME_ASSISTANT_SOURCE_ID = 'home_assistant'
+
+/**
+ * Home Assistant tools are discovered dynamically and prefixed by domain, so they cannot live in the
+ * static table above. Generic entity control is destructive because its effect depends on the target
+ * entity (Home Assistant exposes `cover` to Assist by default), while domain-specific benign controls
+ * stay `write` and query tools stay `read`. Anything else falls back to the configured policy.
+ */
+const HOME_ASSISTANT_TOOL_POLICY: Record<string, ToolPolicy> = {
+  homeassistant__GetLiveContext: 'read',
+  homeassistant__GetState: 'read',
+  llm__GetDateTime: 'read',
+  todo__get_items: 'read',
+
+  light__HassLightSet: 'write',
+  climate__HassClimateSetTemperature: 'write',
+  todo__HassListAddItem: 'write',
+}
+
+const HOME_ASSISTANT_WRITE_DOMAINS = ['media_player__']
+
+const HOME_ASSISTANT_DESTRUCTIVE_PREFIXES = ['intent__']
+
+export function classifyHomeAssistantTool(originalName: string, fallback: ToolPolicy): ToolPolicy {
+  const known = HOME_ASSISTANT_TOOL_POLICY[originalName]
+  if (known) return known
+  if (HOME_ASSISTANT_WRITE_DOMAINS.some((prefix) => originalName.startsWith(prefix))) return 'write'
+  if (HOME_ASSISTANT_DESTRUCTIVE_PREFIXES.some((prefix) => originalName.startsWith(prefix))) {
+    return 'destructive'
+  }
+  return fallback
+}
+
 /** Policy keys are the readable `sourceId.originalName`, independent of the wire-safe tool name. */
 export function policyKey(sourceId: string, originalName: string): string {
   return `${sourceId}.${originalName}`
@@ -46,6 +79,9 @@ export function classifyTool(
   originalName: string,
   fallback: ToolPolicy,
 ): ToolPolicy {
+  if (sourceId === HOME_ASSISTANT_SOURCE_ID) {
+    return classifyHomeAssistantTool(originalName, fallback)
+  }
   return TOOL_POLICY[policyKey(sourceId, originalName)] ?? fallback
 }
 

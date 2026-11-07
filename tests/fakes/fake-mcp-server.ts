@@ -1,4 +1,4 @@
-import { createServer, type Server as HttpServer } from 'node:http'
+import { createServer, type IncomingHttpHeaders, type Server as HttpServer } from 'node:http'
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
@@ -15,15 +15,18 @@ export interface FakeMcpServer {
   url: string
   port: number
   calls: Array<{ name: string; args: Record<string, unknown> }>
+  headers: IncomingHttpHeaders[]
   close(): Promise<void>
 }
 
 export interface FakeMcpServerOptions {
   tools: FakeTool[]
+  port?: number
 }
 
 export async function startFakeMcpServer(options: FakeMcpServerOptions): Promise<FakeMcpServer> {
   const calls: Array<{ name: string; args: Record<string, unknown> }> = []
+  const headers: IncomingHttpHeaders[] = []
 
   const buildServer = (): Server => {
     const server = new Server(
@@ -59,6 +62,7 @@ export async function startFakeMcpServer(options: FakeMcpServerOptions): Promise
   }
 
   const httpServer: HttpServer = createServer((req, res) => {
+    headers.push(req.headers)
     void (async () => {
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: undefined,
@@ -83,7 +87,7 @@ export async function startFakeMcpServer(options: FakeMcpServerOptions): Promise
 
   await new Promise<void>((resolve, reject) => {
     httpServer.once('error', reject)
-    httpServer.listen(0, '127.0.0.1', () => resolve())
+    httpServer.listen(options.port ?? 0, '127.0.0.1', () => resolve())
   })
 
   const address = httpServer.address()
@@ -93,6 +97,7 @@ export async function startFakeMcpServer(options: FakeMcpServerOptions): Promise
     url: `http://127.0.0.1:${port}/mcp`,
     port,
     calls,
+    headers,
     close: () =>
       new Promise<void>((resolve) => {
         httpServer.close(() => resolve())

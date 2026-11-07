@@ -10,10 +10,17 @@ export interface McpClientHandle {
   close(): Promise<void>
 }
 
-export function createMcpClient(options: { url: string; signal?: AbortSignal }): McpClientHandle {
+export function createMcpClient(options: {
+  url: string
+  signal?: AbortSignal
+  headers?: Record<string, string>
+}): McpClientHandle {
   const client = new Client({ name: AGENT_NAME, version: AGENT_VERSION })
+  const requestInit: { signal?: AbortSignal; headers?: Record<string, string> } = {}
+  if (options.signal) requestInit.signal = options.signal
+  if (options.headers) requestInit.headers = options.headers
   const transport = new StreamableHTTPClientTransport(new URL(options.url), {
-    requestInit: options.signal ? { signal: options.signal } : undefined,
+    requestInit: Object.keys(requestInit).length > 0 ? requestInit : undefined,
   })
   return {
     client,

@@ -20,9 +20,14 @@ export interface McpSourceOptions {
   timeoutMs: number
   registry: ToolRegistry
   classify: ToolClassifier
+  headers?: Record<string, string>
   maxRetries?: number
   retryDelayMs?: number
-  createClient?: (options: { url: string; signal?: AbortSignal }) => McpClientHandle
+  createClient?: (options: {
+    url: string
+    signal?: AbortSignal
+    headers?: Record<string, string>
+  }) => McpClientHandle
   logger?: Logger
 }
 
@@ -88,9 +93,14 @@ export class McpSource {
   private readonly timeoutMs: number
   private readonly registry: ToolRegistry
   private readonly classify: ToolClassifier
+  private readonly headers?: Record<string, string>
   private readonly maxRetries: number
   private readonly retryDelayMs: number
-  private readonly createClient: (options: { url: string; signal?: AbortSignal }) => McpClientHandle
+  private readonly createClient: (options: {
+    url: string
+    signal?: AbortSignal
+    headers?: Record<string, string>
+  }) => McpClientHandle
   private readonly logger?: Logger
 
   private handle: McpClientHandle | null = null
@@ -104,6 +114,7 @@ export class McpSource {
     this.timeoutMs = options.timeoutMs
     this.registry = options.registry
     this.classify = options.classify
+    this.headers = options.headers
     this.maxRetries = options.maxRetries ?? 1
     this.retryDelayMs = options.retryDelayMs ?? 250
     this.createClient = options.createClient ?? createMcpClient
@@ -139,7 +150,11 @@ export class McpSource {
       const timer = setTimeout(() => controller.abort(), this.timeoutMs)
       let handle: McpClientHandle | null = null
       try {
-        handle = this.createClient({ url: this.url, signal: controller.signal })
+        handle = this.createClient({
+          url: this.url,
+          signal: controller.signal,
+          ...(this.headers ? { headers: this.headers } : {}),
+        })
         await withTimeout(
           handle.client.connect(handle.transport),
           this.timeoutMs,

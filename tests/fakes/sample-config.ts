@@ -1,7 +1,17 @@
 import type { Permission } from '../../src/auth/caller.js'
 import { generateTokenEntry, type TokenEntry } from '../../src/auth/token-tool.js'
-import type { AgentConfig } from '../../src/config/config.js'
+import type { AgentConfig, McpSourceConfig } from '../../src/config/config.js'
 import { createLogger, type Logger } from '../../src/logging/logger.js'
+
+export const HOME_ASSISTANT_SOURCE_ID = 'home_assistant'
+
+export function homeAssistantSource(url: string, token = ''): McpSourceConfig {
+  return {
+    sourceId: HOME_ASSISTANT_SOURCE_ID,
+    url,
+    ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+  }
+}
 
 export interface FakeToken {
   token: string

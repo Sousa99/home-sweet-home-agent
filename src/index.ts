@@ -35,6 +35,7 @@ async function main(): Promise<void> {
           timeoutMs: config.mcpTimeoutMs,
           registry,
           classify,
+          ...(source.headers ? { headers: source.headers } : {}),
           logger,
         }),
     ),

@@ -134,4 +134,45 @@ describe('tool trace (HTTP contract)', () => {
     )
     expect((await reject.json()).trace?.[0]).toMatchObject({ outcome: 'rejected' })
   })
+
+  it('returns a trace for a Home Assistant tool with sourceId home_assistant', async () => {
+    const namespaced = namespaceTool('home_assistant', 'homeassistant__GetLiveContext')
+    const harness = buildHarness({
+      provider: new FakeLLMProvider([
+        toolCallTurn([{ name: namespaced, args: {} }]),
+        messageTurn('done'),
+      ]),
+      registerTools: (registry) =>
+        registry.registerSource(
+          'home_assistant',
+          [
+            {
+              name: 'homeassistant__GetLiveContext',
+              inputSchema: { type: 'object', properties: {} },
+            },
+          ],
+          () => 'read',
+        ),
+      callTool: async () => ({ content: [{ type: 'text', text: 'live context' }] }),
+    })
+
+    const response = await postJson(
+      harness.app,
+      '/conversation',
+      { message: 'what is happening at home?' },
+      harness.auth,
+    )
+    const body = await response.json()
+
+    expect(body.status).toBe('completed')
+    expect(body.trace).toEqual([
+      {
+        tool: namespaced,
+        sourceId: 'home_assistant',
+        policy: 'read',
+        outcome: 'executed',
+        durationMs: expect.any(Number),
+      },
+    ])
+  })
 })

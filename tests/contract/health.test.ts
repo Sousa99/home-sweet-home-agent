@@ -42,4 +42,18 @@ describe('GET /health', () => {
     const response = await getJson(harness.app, '/health')
     expect(response.status).toBe(401)
   })
+
+  it('reports Home Assistant as a managed source without leaking secrets', async () => {
+    const harness = buildHarness({
+      provider: new FakeLLMProvider([]),
+      statuses: [
+        { sourceId: 'home_assistant', state: 'ready', toolCount: 12 },
+        { sourceId: 'bus', state: 'ready', toolCount: 3 },
+      ],
+    })
+    const body = await (await getJson(harness.app, '/health', harness.auth)).json()
+
+    expect(body.mcp.home_assistant).toEqual({ status: 'ready', tools: 12 })
+    expect(JSON.stringify(body)).not.toMatch(/bearer|ha-token|secret/i)
+  })
 })

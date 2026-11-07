@@ -41,4 +41,26 @@ describe('ToolRegistry', () => {
     expect(namespaceTool('bus', 'get_stop')).toBe('bus__get_stop')
     expect(splitNamespacedTool('nodot')).toBeNull()
   })
+
+  it('namespaces Home Assistant tools that already contain double underscores', () => {
+    const registry = new ToolRegistry()
+    registry.registerSource(
+      'home_assistant',
+      [{ name: 'intent__HassTurnOn' }, { name: 'homeassistant__GetLiveContext' }],
+      () => 'read',
+    )
+    expect(namespaceTool('home_assistant', 'intent__HassTurnOn')).toBe(
+      'home_assistant__intent__HassTurnOn',
+    )
+    expect(splitNamespacedTool('home_assistant__intent__HassTurnOn')).toEqual({
+      sourceId: 'home_assistant',
+      toolName: 'intent__HassTurnOn',
+    })
+    expect(registry.get('home_assistant__homeassistant__GetLiveContext')?.sourceId).toBe(
+      'home_assistant',
+    )
+    expect(registry.get('home_assistant__homeassistant__GetLiveContext')?.originalName).toBe(
+      'homeassistant__GetLiveContext',
+    )
+  })
 })

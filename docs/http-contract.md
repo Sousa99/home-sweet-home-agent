@@ -118,14 +118,42 @@ event but does not schedule or dispatch anything.
     "bus": { "status": "ready", "tools": 10 },
     "flights": { "status": "ready", "tools": 1 },
     "tasks": { "status": "degraded", "tools": 9, "error": { "code": "mcp_unavailable", "message": "Module request failed." } },
-    "weather": { "status": "unavailable", "tools": 0 }
+    "weather": { "status": "unavailable", "tools": 0 },
+    "home_assistant": { "status": "ready", "tools": 28 }
   },
   "llm": { "ready": true, "provider": "openai-compatible", "model": "deepseek-v4.1-flash" }
 }
 ```
 
 `status` is `ok` when every module and the LLM are ready, `degraded` when some are, and `down`
-otherwise. `retention` no sensitive values are returned.
+otherwise. The agent never returns sensitive values such as MCP credentials.
+
+## Home Assistant MCP source
+
+Home Assistant is the fifth managed MCP source (`sourceId: home_assistant`). It connects to Home
+Assistant's built-in Model Context Protocol Server over Streamable HTTP at `/api/mcp` and
+authenticates with a long-lived access token sent as `Authorization: Bearer <token>`.
+
+- **Configuration**: `HOME_ASSISTANT_MCP_URL` and `HOME_ASSISTANT_MCP_TOKEN`. The official deployment
+  is the home server over Tailscale at `https://home-assistant.<tailnet>.ts.net/api/mcp`. A local
+  Home Assistant still works with `HOME_ASSISTANT_MCP_URL=http://localhost:8123/api/mcp`; the code
+  default is the local URL for portability. Both use the same long-lived access token. The token is a
+  secret supplied only through the environment; it is never logged, returned, or committed. With no
+  token the source simply reports `unavailable`.
+- **OpenCode**: the development MCP entry resolves both the URL and token from
+  `HOME_ASSISTANT_MCP_URL` and `HOME_ASSISTANT_TOKEN`, so the same environment settings drive OpenCode
+  and the agent. Export them in your shell (for example from `.env`) before starting OpenCode.
+- **Namespacing**: discovered tools are advertised as `home_assistant__<originalName>`, e.g.
+  `home_assistant__intent__HassTurnOn`. Home Assistant entity access is configured in Home Assistant
+  (Settings > System > AI and exposed entities), not by the agent.
+- **Policy**: query tools (`homeassistant__GetLiveContext`, `llm__GetDateTime`, `todo__get_items`) are
+  `read`; benign domain controls (`light__HassLightSet`, `climate__HassClimateSetTemperature`,
+  `media_player__*`, `todo__HassListAddItem`) are `write`; generic entity control
+  (`intent__HassTurnOn`, `intent__HassTurnOff`, `intent__HassToggle`, `intent__HassSetPosition`) and
+  any unclassified tool require confirmation. Generic control is destructive because its effect
+  depends on the target entity, which may be a cover, lock, or alarm.
+- **Failure isolation**: if Home Assistant is unavailable, the four module sources keep working and
+  `/health` reports Home Assistant accurately.
 
 ## Tool safety policy
 
@@ -133,9 +161,9 @@ The agent classifies every discovered tool rather than trusting module hints:
 
 | Policy | Examples | Behavior |
 | ------ | -------- | -------- |
-| `read` | `bus.get_stop_times`, `flights.planes_over`, `tasks.task.list`, `weather.*` | Auto-execute with the `read` permission. |
-| `write` | `tasks.task.create`, `tasks.task.update`, `tasks.task.comment`, `bus.add_stop` | Auto-execute with the `write` permission. |
-| `destructive` | `tasks.task.delete`, `tasks.task.set_status`, `bus.remove_stop` | Require an approved confirmation. |
+| `read` | `bus.get_stop_times`, `flights.planes_over`, `tasks.task.list`, `weather.*`, `home_assistant.homeassistant__GetLiveContext` | Auto-execute with the `read` permission. |
+| `write` | `tasks.task.create`, `tasks.task.update`, `tasks.task.comment`, `bus.add_stop`, `home_assistant.light__HassLightSet` | Auto-execute with the `write` permission. |
+| `destructive` | `tasks.task.delete`, `tasks.task.set_status`, `bus.remove_stop`, `home_assistant.intent__HassTurnOn` | Require an approved confirmation. |
 
 Unknown tools use `AGENT_UNKNOWN_TOOL_POLICY` (default `destructive`). Tools the caller lacks
 permission for are not advertised to the model. Tool output fed back to the model is capped at

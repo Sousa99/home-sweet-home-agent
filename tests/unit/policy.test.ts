@@ -25,6 +25,38 @@ describe('tool policy', () => {
     expect(classifyTool('mystery', 'tool', 'write')).toBe('write')
   })
 
+  it('classifies Home Assistant read tools', () => {
+    expect(classifyTool('home_assistant', 'homeassistant__GetLiveContext', 'destructive')).toBe(
+      'read',
+    )
+    expect(classifyTool('home_assistant', 'llm__GetDateTime', 'destructive')).toBe('read')
+    expect(classifyTool('home_assistant', 'homeassistant__GetState', 'destructive')).toBe('read')
+    expect(classifyTool('home_assistant', 'todo__get_items', 'destructive')).toBe('read')
+  })
+
+  it('classifies benign Home Assistant domain controls as write', () => {
+    expect(classifyTool('home_assistant', 'light__HassLightSet', 'destructive')).toBe('write')
+    expect(
+      classifyTool('home_assistant', 'climate__HassClimateSetTemperature', 'destructive'),
+    ).toBe('write')
+    expect(classifyTool('home_assistant', 'media_player__HassMediaPause', 'destructive')).toBe(
+      'write',
+    )
+    expect(classifyTool('home_assistant', 'todo__HassListAddItem', 'destructive')).toBe('write')
+  })
+
+  it('classifies generic Home Assistant entity control as destructive', () => {
+    expect(classifyTool('home_assistant', 'intent__HassTurnOn', 'read')).toBe('destructive')
+    expect(classifyTool('home_assistant', 'intent__HassTurnOff', 'read')).toBe('destructive')
+    expect(classifyTool('home_assistant', 'intent__HassToggle', 'read')).toBe('destructive')
+    expect(classifyTool('home_assistant', 'intent__HassSetPosition', 'read')).toBe('destructive')
+  })
+
+  it('falls back for unknown Home Assistant tools', () => {
+    expect(classifyTool('home_assistant', 'custom__Mystery', 'destructive')).toBe('destructive')
+    expect(classifyTool('home_assistant', 'custom__Mystery', 'write')).toBe('write')
+  })
+
   it('maps policy to the required permission', () => {
     expect(permissionForPolicy('read')).toBe('read')
     expect(permissionForPolicy('write')).toBe('write')
